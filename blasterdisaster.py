@@ -46,7 +46,7 @@ class Environment:
         self.max_lasers = int_max_lasers
         self.started = False
 
-    def spawn_laser(self, init_row):
+    def spawn_laser(self):
         """
         Spawn a laser at row
         :param init_row: row where the laser will be
@@ -57,10 +57,11 @@ class Environment:
         if len(self.laser_array) < self.max_lasers:
             # Spawn a laser and add to the array
             mypos = self.get_random_laser_position()
-            
+
             # Append only if the spot is empty
-            if self.StarField[(mypos, self.StarField[1] - 1)] == Marker.Empty:
+            if self.StarField[(mypos, self.StarField.shape[1] - 1)] == Marker.EMPTY:
                 new_laser = Laser(mypos)
+                new_laser.coord = (mypos, self.StarField.shape[1] - 1) # set the coordinate
                 self.laser_array.append(new_laser)
 
     def get_random_laser_position(self):
@@ -68,7 +69,7 @@ class Environment:
         Returns an integer indicating the row of the laser
         :return: int
         """
-        return rnd.randint(0, self.StarField.shape[0])
+        return rnd.randint(0, self.StarField.shape[0] - 1)
 
     def spawn_agent(self):
         """
@@ -83,6 +84,9 @@ class Environment:
         :return:
         """
 
+        # spawn a laser
+        self.spawn_laser()
+
         # First we'll place the laser in the star field
         if len(self.laser_array) > 0:
             # the laser array has at least one or more lasers in it.
@@ -94,7 +98,16 @@ class Environment:
                 elif col == 0:
                     # delete the laser
                     self.laser_array.remove(lsr)
+                    self.StarField[row, col] = Marker.EMPTY  # Clear out the beam
 
+            # next we'll animate the lasers to the left one spot
+            for index_in, lsr in enumerate(self.laser_array):
+                row, col = lsr.coord
+                if col > 0:
+                    lsr.coord = (row, col - 1)
+                    r, c = lsr.coord
+                    self.StarField[r, c] = Marker.BEAM
+                    self.StarField[row, col] = Marker.EMPTY # update the previous
 
     def check_contact(self):
         """
@@ -110,11 +123,12 @@ class Environment:
 
 
 def testing():
-    r = Environment((10, 10), 3)
+    r = Environment((10, 10), 10)
     print(r.StarField)
 
     while True:
-        print(r.get_random_laser_position())
+        print(r.StarField)
+        r.animate()
         tmr.sleep(1)
 
 testing()
